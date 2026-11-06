@@ -47,14 +47,17 @@ is empty`. Reality-клиенты падают молча — соединени
    x-ui stop
    ```
 
-2. Обнулить `flow` у всех клиентов на нужном inbound (или у конкретных):
+2. Обнулить `flow` у всех клиентов на нужном inbound (или у конкретных) —
+   **в обеих таблицах**, где он может лежать:
    ```bash
    sqlite3 /etc/x-ui/x-ui.db "UPDATE clients SET flow='' WHERE flow!='';"
+   sqlite3 /etc/x-ui/x-ui.db "UPDATE client_inbounds SET flow_override='' WHERE flow_override!='';"
    ```
 
-   В таблице `clients` есть колонка `flow`; таблица `inbounds` содержит
-   inbound-настройки, но колонки `flow` в `client_inbounds` нет — править
-   только `clients`.
+   У клиента flow может лежать в `clients.flow` и в переопределении
+   `client_inbounds.flow_override`; генератор учитывает переопределение.
+   Клиент, добавленный через `client_inbounds`, продолжит получать vision
+   из `flow_override`, даже если `clients.flow` пуст.
 
 3. Перезапустить x-ui:
    ```
@@ -89,3 +92,12 @@ is empty`. Reality-клиенты падают молча — соединени
 `clients.flow` через sqlite3 и перезапуска первый клиент заработал.
 Повторно проверено: `grep flow` в сгенерированном config.json
 показал пустой flow.
+
+## История
+
+2026-10-26 (вечер): запись ранее утверждала, что `client_inbounds`
+колонки flow не имеет и править нужно только `clients`. Опровергнуто на
+той же панели: в схеме 3x-ui v3.8.5 есть `client_inbounds.flow_override`,
+и для клиента, добавленного через неё, обнуление только `clients.flow`
+генерацию не меняло — сгенерированный конфиг продолжал вписывать vision
+до очистки `flow_override`. Рецепт дополнен второй командой.
